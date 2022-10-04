@@ -1,18 +1,28 @@
-import Ember from 'ember';
-import { didModelChange, didModelsChange, relationShipTransform, relationshipKnownState } from './utilities';
+import Ember from "ember";
+import {
+  didModelChange,
+  didModelsChange,
+  relationShipTransform,
+  relationshipKnownState,
+} from "./utilities";
 
-const assign = Ember.assign || Ember.merge;
-export const ModelTrackerKey = '-change-tracker';
-export const RelationshipsKnownTrackerKey = '-change-tracker-relationships-known';
+export const ModelTrackerKey = "-change-tracker";
+export const RelationshipsKnownTrackerKey =
+  "-change-tracker-relationships-known";
 const alreadyTrackedRegex = /^-mf-|string|boolean|date|^number$/,
-      knownTrackerOpts    = Ember.A(['only', 'auto', 'except', 'trackHasMany', 'enableIsDirty']),
-      defaultOpts         = {trackHasMany: true, auto: false, enableIsDirty: false};
+  knownTrackerOpts = Ember.A([
+    "only",
+    "auto",
+    "except",
+    "trackHasMany",
+    "enableIsDirty",
+  ]),
+  defaultOpts = { trackHasMany: true, auto: false, enableIsDirty: false };
 
 /**
  * Helper class for change tracking models
  */
 export default class Tracker {
-
   /**
    * Get Ember application container
    *
@@ -30,9 +40,10 @@ export default class Tracker {
    * @returns {*|{}}
    */
   static envConfig(model) {
-    let config = this.container(model).resolveRegistration('config:environment');
+    let config =
+      this.container(model).resolveRegistration("config:environment");
     // sometimes the config is not available ?? not sure why
-    return config && config.changeTracker || {};
+    return (config && config.changeTracker) || {};
   }
 
   /**
@@ -85,7 +96,7 @@ export default class Tracker {
    * @returns {*}
    */
   static transformFn(model, attributeType) {
-    let transformType = attributeType || 'object';
+    let transformType = attributeType || "object";
     return this.container(model).lookup(`transform:${transformType}`);
   }
 
@@ -105,8 +116,8 @@ export default class Tracker {
    */
   static normalize(model, data) {
     let container = this.container(model);
-    let serializer = container.lookup('serializer:-rest');
-    serializer.set('store', model.store);
+    let serializer = container.lookup("serializer:-rest");
+    serializer.set("store", model.store);
     return serializer.normalize(model.constructor, data);
   }
 
@@ -119,7 +130,7 @@ export default class Tracker {
    * @returns {*} all the meta info on this model that tracker is tracking
    */
   static metaInfo(model, key = null) {
-    let info = (model.constructor.trackerKeys || {});
+    let info = model.constructor.trackerKeys || {};
     if (key) {
       return info[key];
     }
@@ -134,7 +145,7 @@ export default class Tracker {
    * @returns {boolean} true if this key is being tracked. false otherwise
    */
   static isTracking(model, key) {
-    let info = (model.constructor.trackerKeys || {});
+    let info = model.constructor.trackerKeys || {};
     return !!info[key];
   }
 
@@ -165,10 +176,13 @@ export default class Tracker {
   static options(model) {
     let envConfig = this.envConfig(model);
     let modelConfig = this.modelConfig(model);
-    let opts = assign({}, defaultOpts, envConfig, modelConfig);
+    let opts = Object.assign({}, defaultOpts, envConfig, modelConfig);
 
-    let unknownOpts = Object.keys(opts).filter((v) => !knownTrackerOpts.includes(v));
-    Ember.assert(`[ember-data-change-tracker] changeTracker options can have
+    let unknownOpts = Object.keys(opts).filter(
+      (v) => !knownTrackerOpts.includes(v)
+    );
+    Ember.assert(
+      `[ember-data-change-tracker] changeTracker options can have
       'only', 'except' , 'auto', 'enableIsDirty' or 'trackHasMany' but you are declaring: ${unknownOpts}`,
       Ember.isEmpty(unknownOpts)
     );
@@ -215,11 +229,11 @@ export default class Tracker {
       except = [...except, ...hasManyList];
     }
 
-    all = [...all].filter(a => !except.includes(a));
-    all = [...all].filter(a => only.includes(a));
+    all = [...all].filter((a) => !except.includes(a));
+    all = [...all].filter((a) => only.includes(a));
 
     let keyMeta = {};
-    Object.keys(trackableInfo).forEach(key => {
+    Object.keys(trackableInfo).forEach((key) => {
       if (all.includes(key)) {
         let info = trackableInfo[key];
         info.transform = this.getTransform(model, key, info);
@@ -227,8 +241,8 @@ export default class Tracker {
       }
     });
 
-    let {enableIsDirty} = trackerOpts;
-    return {autoSave: trackerOpts.auto, enableIsDirty, keyMeta};
+    let { enableIsDirty } = trackerOpts;
+    return { autoSave: trackerOpts.auto, enableIsDirty, keyMeta };
   }
 
   /**
@@ -239,13 +253,13 @@ export default class Tracker {
    * @returns {[*,*]} meta data about possible keys to track
    */
   static extractKeys(model) {
-    let {constructor} = model;
+    let { constructor } = model;
     let trackerKeys = {};
     let hasManyList = [];
 
     constructor.eachAttribute((attribute, meta) => {
       if (!alreadyTrackedRegex.test(meta.type)) {
-        trackerKeys[attribute] = {type: 'attribute', name: meta.type};
+        trackerKeys[attribute] = { type: "attribute", name: meta.type };
       }
     });
 
@@ -253,9 +267,9 @@ export default class Tracker {
       trackerKeys[key] = {
         type: relationship.kind,
         polymorphic: relationship.options.polymorphic,
-        knownState: relationshipKnownState[relationship.kind]
+        knownState: relationshipKnownState[relationship.kind],
       };
-      if (relationship.kind === 'hasMany') {
+      if (relationship.kind === "hasMany") {
         hasManyList.push(key);
       }
     });
@@ -276,10 +290,11 @@ export default class Tracker {
   static getTransform(model, key, info) {
     let transform;
 
-    if (info.type === 'attribute') {
+    if (info.type === "attribute") {
       transform = this.transformFn(model, info.name);
 
-      Ember.assert(`[ember-data-change-tracker] changeTracker could not find
+      Ember.assert(
+        `[ember-data-change-tracker] changeTracker could not find
       a ${info.name} transform function for the attribute '${key}' in
       model '${model.constructor.modelName}'.
       If you are in a unit test, be sure to include it in the list of needs`,
@@ -306,15 +321,15 @@ export default class Tracker {
     if (changed[key]) {
       return true;
     }
-    let keyInfo = info && info[key] || this.metaInfo(model, key);
+    let keyInfo = (info && info[key]) || this.metaInfo(model, key);
     if (keyInfo) {
       let current = this.serialize(model, key, keyInfo);
       let last = this.lastValue(model, key);
       switch (keyInfo.type) {
-        case 'attribute':
-        case 'belongsTo':
+        case "attribute":
+        case "belongsTo":
           return didModelChange(current, last, keyInfo.polymorphic);
-        case 'hasMany':
+        case "hasMany":
           return didModelsChange(current, last, keyInfo.polymorphic);
       }
     }
@@ -334,9 +349,9 @@ export default class Tracker {
   static serialize(model, key, keyInfo) {
     let info = keyInfo || this.metaInfo(model, key);
     let value;
-    if (info.type === 'attribute') {
+    if (info.type === "attribute") {
       value = info.transform.serialize(model.get(key));
-      if (typeof value !== 'string') {
+      if (typeof value !== "string") {
         value = JSON.stringify(value);
       }
     } else {
@@ -357,7 +372,7 @@ export default class Tracker {
   static isKnown(model, key, keyInfo) {
     let info = keyInfo || this.metaInfo(model, key);
     let value;
-    if (info.type === 'attribute') {
+    if (info.type === "attribute") {
       value = true;
     } else {
       value = info.knownState.isKnown(model, key);
@@ -395,7 +410,7 @@ export default class Tracker {
    * @returns {{*}}
    */
   static rollbackData(model, trackerInfo) {
-    let data = {id: model.id};
+    let data = { id: model.id };
     Object.keys(trackerInfo).forEach((key) => {
       let keyInfo = trackerInfo[key];
       if (this.didChange(model, key, null, trackerInfo)) {
@@ -403,11 +418,12 @@ export default class Tracker {
         // since just pushing new data is not resetting the relationship.
         // This slows down the hasMany rollback by about 25%, but still
         // fast => (~100ms) with 500 items in a hasMany
-        if (keyInfo.type === 'hasMany') {
+        if (keyInfo.type === "hasMany") {
           model.set(key, []);
         }
         let lastValue = Tracker.lastValue(model, key);
-        if (keyInfo.type === 'attribute' && !keyInfo.name) { // attr() undefined type
+        if (keyInfo.type === "attribute" && !keyInfo.name) {
+          // attr() undefined type
           lastValue = keyInfo.transform.deserialize(lastValue);
         }
         data[key] = lastValue;
@@ -423,9 +439,9 @@ export default class Tracker {
    * @param {Object} options
    *    except array of keys to exclude
    */
-  static saveChanges(model, {except = []} = {}) {
+  static saveChanges(model, { except = [] } = {}) {
     let metaInfo = this.metaInfo(model);
-    let keys = Object.keys(metaInfo).filter(key => !except.includes(key));
+    let keys = Object.keys(metaInfo).filter((key) => !except.includes(key));
     Tracker.saveKeys(model, keys);
   }
 
@@ -455,11 +471,11 @@ export default class Tracker {
    * @param {DS.Model} model
    */
   static triggerIsDirtyReset(model) {
-    model.notifyPropertyChange('hasDirtyAttributes');
-    model.notifyPropertyChange('hasDirtyRelations');
+    model.notifyPropertyChange("hasDirtyAttributes");
+    model.notifyPropertyChange("hasDirtyRelations");
   }
 
-    /**
+  /**
    * Save the value from an array of keys model's tracker hash
    * and save the relationship states if keys represents a relationship
    *
@@ -467,16 +483,19 @@ export default class Tracker {
    * @param {Array} keys to save
    */
 
-  static saveKeys(model, keys){
+  static saveKeys(model, keys) {
     let modelTracker = model.get(ModelTrackerKey) || {},
-    relationshipsKnownTracker = model.get(RelationshipsKnownTrackerKey) || {},
-    isNew   = model.get('isNew');
+      relationshipsKnownTracker = model.get(RelationshipsKnownTrackerKey) || {},
+      isNew = model.get("isNew");
 
-    keys.forEach(key => {
+    keys.forEach((key) => {
       modelTracker[key] = isNew ? undefined : this.serialize(model, key);
       relationshipsKnownTracker[key] = isNew ? true : this.isKnown(model, key);
-    })
-    model.setProperties({[ModelTrackerKey]:modelTracker, [RelationshipsKnownTrackerKey]: relationshipsKnownTracker})
+    });
+    model.setProperties({
+      [ModelTrackerKey]: modelTracker,
+      [RelationshipsKnownTrackerKey]: relationshipsKnownTracker,
+    });
   }
 
   /**
@@ -516,55 +535,57 @@ export default class Tracker {
     const attrs = [];
 
     model.eachRelationship((name, descriptor) => {
-      if (descriptor.kind === 'hasMany') {
+      if (descriptor.kind === "hasMany") {
         relations.push(descriptor.key);
         if (descriptor.options.async) {
-          relationsObserver.push(descriptor.key + '.content.@each.id');
+          relationsObserver.push(descriptor.key + ".content.@each.id");
         } else {
-          relationsObserver.push(descriptor.key + '.@each.id');
+          relationsObserver.push(descriptor.key + ".@each.id");
         }
       } else {
         relations.push(descriptor.key);
-        relationsObserver.push(descriptor.key + '.content');
+        relationsObserver.push(descriptor.key + ".content");
       }
     });
 
-    model.eachAttribute(name => {
+    model.eachAttribute((name) => {
       return attrs.push(name);
     });
 
-    const hasDirtyRelations = function() {
+    const hasDirtyRelations = function () {
       const changed = model.modelChanges();
-      return !!relations.find(key => changed[key]);
+      return !!relations.find((key) => changed[key]);
     };
 
-    const hasDirtyAttributes = function() {
+    const hasDirtyAttributes = function () {
       const changed = model.modelChanges();
-      return !!attrs.find(key => changed[key]);
+      return !!attrs.find((key) => changed[key]);
     };
 
-    const isDirty = function() {
-      return model.get('hasDirtyAttributes') || model.get('hasDirtyRelations');
+    const isDirty = function () {
+      return model.get("hasDirtyAttributes") || model.get("hasDirtyRelations");
     };
 
     Ember.defineProperty(
       model,
-      'hasDirtyAttributes',
+      "hasDirtyAttributes",
       Ember.computed.apply(Ember, attrs.concat([hasDirtyAttributes]))
     );
 
     Ember.defineProperty(
       model,
-      'hasDirtyRelations',
+      "hasDirtyRelations",
       Ember.computed.apply(Ember, relationsObserver.concat([hasDirtyRelations]))
     );
 
     Ember.defineProperty(
       model,
-      'isDirty',
-      Ember.computed.apply(Ember, ['hasDirtyAttributes', 'hasDirtyRelations', isDirty])
+      "isDirty",
+      Ember.computed.apply(Ember, [
+        "hasDirtyAttributes",
+        "hasDirtyRelations",
+        isDirty,
+      ])
     );
-
   }
-
 }

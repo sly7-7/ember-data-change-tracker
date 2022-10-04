@@ -1,10 +1,9 @@
-import Ember from 'ember';
-import Model from 'ember-data/model';
-import Tracker from './tracker';
+import Ember from "ember";
+import Model from "ember-data/model";
+import Tracker from "./tracker";
 
 Model.reopen({
-
-  init(){
+  init() {
     this._super(...arguments);
     if (Tracker.isAutoSaveEnabled(this)) {
       this.initTracking();
@@ -40,7 +39,7 @@ Model.reopen({
    * @returns {*}
    */
   modelChanges() {
-    let changed = Ember.assign({}, this.changedAttributes());
+    let changed = Object.assign({}, this.changedAttributes());
     let trackerInfo = Tracker.metaInfo(this);
     for (let key in trackerInfo) {
       if (!changed[key] && trackerInfo.hasOwnProperty(key)) {
@@ -63,9 +62,11 @@ Model.reopen({
    *
    */
   rollback() {
-    const isNew = this.get('isNew');
+    const isNew = this.get("isNew");
     this.rollbackAttributes();
-    if (isNew) { return; }
+    if (isNew) {
+      return;
+    }
     let trackerInfo = Tracker.metaInfo(this);
     let rollbackData = Tracker.rollbackData(this, trackerInfo);
     let normalized = Tracker.normalize(this, rollbackData);
@@ -85,26 +86,24 @@ Model.reopen({
   // https://github.com/emberjs/rfcs/blob/master/text/0329-deprecated-ember-evented-in-ember-data.md
   // Related: https://github.com/emberjs/rfcs/pull/329
 
-  initTracking(){
+  initTracking() {
+    this.didCreate = () => {
+      this.saveOnCreate();
+    };
 
-      this.didCreate = () => {
-        this.saveOnCreate();
-      }
+    this.didUpdate = () => {
+      this.saveOnUpdate();
+    };
 
-      this.didUpdate  = () => {
-        this.saveOnUpdate();
-      }
+    this.didDelete = () => {
+      this.clearSavedAttributes();
+    };
 
-      this.didDelete = () => {
-        this.clearSavedAttributes();
-      }
-
-      this.ready = () => {
-        this.setupTrackerMetaData();
-        this.setupUnknownRelationshipLoadObservers();
-      },
-
-    Tracker.setupTracking(this);
+    (this.ready = () => {
+      this.setupTrackerMetaData();
+      this.setupUnknownRelationshipLoadObservers();
+    }),
+      Tracker.setupTracking(this);
   },
 
   /**
@@ -151,7 +150,7 @@ Model.reopen({
   // watch for relationships loaded with data via links
   setupUnknownRelationshipLoadObservers() {
     this.eachRelationship((key) => {
-      this.addObserver(key, this, 'observeUnknownRelationshipLoaded');
+      this.addObserver(key, this, "observeUnknownRelationshipLoaded");
     });
   },
 
@@ -185,12 +184,12 @@ Model.reopen({
     Tracker.clear(this);
   },
 
-  observeUnknownRelationshipLoaded(sender, key/*, value, rev*/) {
+  observeUnknownRelationshipLoaded(sender, key /*, value, rev*/) {
     if (Tracker.trackingIsSetup(this) && Tracker.isTracking(this, key)) {
       let saved = Tracker.saveLoadedRelationship(this, key);
       if (saved) {
-        this.removeObserver(key, this, 'observeUnknownRelationshipLoaded');
+        this.removeObserver(key, this, "observeUnknownRelationshipLoaded");
       }
     }
-  }
+  },
 });
