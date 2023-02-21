@@ -16,7 +16,7 @@ export const relationShipTransform = {
       let relationship = model.belongsTo(key).belongsToRelationship;
       let value = relationship.hasOwnProperty("inverseRecordData")
         ? relationship.inverseRecordData
-        : relationship.remoteState;
+        : relationship.localState;
       return value && modelTransform(value, options.polymorphic);
     },
 
