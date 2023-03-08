@@ -25,7 +25,7 @@ export const relationShipTransform = {
   hasMany: {
     serialize(model, key, options) {
       let relationship = model.hasMany(key).hasManyRelationship;
-      let value = relationship.currentState;
+      let value = relationship.localState;
       return (
         value && value.map((item) => modelTransform(item, options.polymorphic))
       );
